@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>신문 사설 검색 (Editorial Search)</title>
+
+    <!-- Google Fonts for Korean Support and Aesthetics -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Outfit:wght@400;600&display=swap"
+        rel="stylesheet">
+
+    <!-- Internal CSS (Combined for Portability) -->
+    <style>
+        /* CSS Reset & Normalize */
+        html {
+            -webkit-text-size-adjust: 100%;
+            -moz-text-size-adjust: 100%;
+            text-size-adjust: 100%;
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Noto Sans KR', 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #f5f7fa;
+            --text-color: #333;
+            --accent-color: #e94e77;
+            --card-bg: #ffffff;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --shadow-hover: 0 10px 20px rgba(0, 0, 0, 0.15);
+            --border-radius: 12px;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3rem 1rem;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        /* Main Layout */
+        main {
+            flex: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        /* Search Section */
+        .search-container {
+            display: flex;
+            justify-content: center;
+        }
+
+        .search-card {
+            background: var(--card-bg);
+            padding: 2.5rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .search-card h2 {
+            margin-bottom: 1.5rem;
+            color: var(--primary-color);
+            font-size: 1.5rem;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .input-group {
+            margin-bottom: 1.2rem;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #444;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: border-color 0.3s, box-shadow 0.3s;
+            background-color: #fff;
+            appearance: none;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+        }
+
+        #search-btn {
+            width: 100%;
+            padding: 1rem;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            margin-top: 1rem;
+            font-family: inherit;
+        }
+
+        #search-btn:hover {
+            background-color: #357abd;
+            transform: translateY(-2px);
+        }
+
+        #search-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Results Section */
+        .results-container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        #results-header {
+            margin-bottom: 1rem;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #results-header h3 {
+            font-size: 1.2rem;
+            color: #444;
+            font-weight: 600;
+        }
+
+        #results-list {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        /* Initial State Placeholder */
+        .initial-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #888;
+            background: #fff;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            border: 1px dashed #ccc;
+        }
+
+        .initial-state p {
+            font-size: 1.1rem;
+        }
+
+        /* Result Item Card */
+        .editorial-card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            border-left: 5px solid var(--primary-color);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .editorial-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .editorial-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 1rem;
+        }
+
+        .editorial-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 0.4rem;
+            letter-spacing: -0.01em;
+        }
+
+        .editorial-meta {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            font-weight: 400;
+        }
+
+        .editorial-content {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .content-row {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .content-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.3rem;
+            color: var(--primary-color);
+        }
+
+        .content-text {
+            font-size: 1rem;
+            color: #4a4a4a;
+            background-color: #f8f9fa;
+            padding: 0.9rem;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            word-break: keep-all;
+            line-height: 1.7;
+        }
+
+        /* Specific colors for different fields/tags */
+        .content-row.background .content-label {
+            color: #d35400;
+        }
+
+        .content-row.evidence .content-label {
+            color: #27ae60;
+        }
+
+        .content-row.argument .content-label {
+            color: #8e44ad;
+        }
+
+        .content-row.fact .content-label {
+            color: #2980b9;
+        }
+
+        /* Footer */
+        footer {
+            background-color: #34495e;
+            color: #bdc3c7;
+            text-align: center;
+            padding: 2rem 1rem;
+            margin-top: auto;
+            font-size: 0.9rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            header {
+                padding: 2rem 1rem;
+            }
+
+            header h1 {
+                font-size: 2rem;
+            }
+
+            main {
+                padding: 1.5rem 1rem;
+            }
+
+            .search-card {
+                padding: 1.5rem;
+            }
+
+            .editorial-card {
+                padding: 1.2rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="header-content">
+            <h1>신문 사설 검색</h1>
+            <p>Editorial Search Engine</p>
+        </div>
+    </header>
+
+    <main>
+        <section class="search-container">
+            <div class="search-card">
+                <h2>검색 조건 입력</h2>
+                <div class="input-group">
+                    <label for="search-background">Background (배경)</label>
+                    <input type="text" id="search-background" placeholder="배경 내용을 입력하세요...">
+                </div>
+                <div class="input-group">
+                    <label for="search-evidence">Evidence (증거)</label>
+                    <input type="text" id="search-evidence" placeholder="증거 내용을 입력하세요...">
+                </div>
+                <div class="input-group">
+                    <label for="search-argument">Argument (주장)</label>
+                    <input type="text" id="search-argument" placeholder="주장 내용을 입력하세요...">
+                </div>
+                <div class="input-group">
+                    <label for="search-fact">Fact (사실)</label>
+                    <input type="text" id="search-fact" placeholder="사실 내용을 입력하세요...">
+                </div>
+                <button id="search-btn">검색하기</button>
+            </div>
+        </section>
+
+        <section class="results-container">
+            <div id="results-header">
+                <h3>검색 결과 <span id="result-count">0</span>건</h3>
+            </div>
+            <div id="results-list">
+                <!-- Results will be injected here via JS -->
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Editorial Search. All rights reserved.</p>
+    </footer>
+
+    <!-- Internal JS (Combined for Portability) -->
+    <script>
+        // XML 데이터를 JS 파일 내부에 포함시킵니다. 
+        const xmlData = `<?xml version="1.0" encoding="UTF-8"?>
+<editorials xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="editorial.xsd">
+  <editorial id="sample-1">
+    <title><![CDATA[디지털 교육 격차, 공교육이 나서야 한다]]></title>
+    <author>김한글 논설위원</author>
+    <date>2024-01-10</date>
+    <structure>
+      <background><![CDATA[최근 전국 초중고교의 디지털 기기 보급률이 급증하고 있으나, 활용 능력의 격차는 여전히 심각하다.]]></background>
+      <evidence><![CDATA[교육부 통계에 따르면 수도권과 지방 학생 간의 디지털 리터러시 점수 차이가 20% 이상 벌어졌다.]]></evidence>
+      <argument><![CDATA[정부는 기기 보급을 넘어 실질적인 디지털 활용 교육 프로그램을 의무화해야 한다.]]></argument>
+      <fact><![CDATA[현재 디지털 교육 시수는 OECD 평균의 절반 수준인 주당 1시간에 불과하다.]]></fact>
+    </structure>
+  </editorial>
+  <editorial id="sample-2">
+    <title><![CDATA[기후 위기 대응, 기업의 책임 강화해야]]></title>
+    <author>이초록 전문기자</author>
+    <date>2024-01-11</date>
+    <structure>
+      <background><![CDATA[전 지구적인 이상 기후 현상으로 인한 경제적 피해가 매년 최고치를 경신하고 있다.]]></background>
+      <evidence><![CDATA[탄소 배출 상위 10개 기업이 전체 배출량의 40%를 차지한다는 환경단체 보고서가 발표되었다.]]></evidence>
+      <argument><![CDATA[기업의 ESG 경영을 단순 권고가 아닌 법적 의무 사항으로 강화해야만 실효성을 거둘 수 있다.]]></argument>
+      <fact><![CDATA[유럽연합은 이미 공급망 실사법을 통해 기업의 환경 책임을 법제화했다.]]></fact>
+    </structure>
+  </editorial>
+  <editorial id="sample-3">
+    <title><![CDATA[저출산 대책, 현금 살포보다 육아 환경 개선을]]></title>
+    <author>박미래 논설위원</author>
+    <date>2024-01-12</date>
+    <structure>
+      <background><![CDATA[합계출산율 0.7명대가 붕괴될 위기에 처했으나, 현금성 지원 정책은 한계를 드러내고 있다.]]></background>
+      <evidence><![CDATA[출산 장려금을 늘린 지자체에서도 출산율 반등 효과는 미미했다는 연구 결과가 있다.]]></evidence>
+      <argument><![CDATA[육아 휴직의 자유로운 사용과 공공 보육 시설 확충 등 '아이 키우기 좋은 환경'을 만드는 것이 우선이다.]]></argument>
+      <fact><![CDATA[한국의 남성 육아휴직 사용률은 제도는 존재하나 실사용률은 5% 내외로 주요국 중 최하위권이다.]]></fact>
+    </structure>
+  </editorial>
+  <editorial id="sample-4">
+    <title><![CDATA[의대 정원 확대, 지역 의료 붕괴 막을 골든타임]]></title>
+    <author>최생명 의학전문기자</author>
+    <date>2024-01-13</date>
+    <structure>
+      <background><![CDATA[지방 의료원의 의사 구인난이 심화되면서 응급실 뺑뺑이 등 필수 의료 공백 사태가 잇따르고 있다.]]></background>
+      <evidence><![CDATA[지방 국립대병원조차 전공의 정원을 채우지 못해 진료 과목을 폐쇄하는 사례가 속출하고 있다.]]></evidence>
+      <argument><![CDATA[의대 정원을 대폭 확대하고 지역 의사제를 도입하여 의료 인력의 수도권 쏠림 현상을 막아야 한다.]]></argument>
+      <fact><![CDATA[우리나라 의대 입학 정원은 2006년 이후 18년 동안 동결된 상태다.]]></fact>
+    </structure>
+  </editorial>
+  <editorial id="sample-5">
+    <title><![CDATA[가계부채 뇌관, 선제적 관리 필요하다]]></title>
+    <author>정경제 논설실장</author>
+    <date>2024-01-14</date>
+    <structure>
+      <background><![CDATA[고금리 기조가 장기화되면서 영끌로 집을 산 2030 세대와 자영업자의 이자 부담이 한계에 다다랐다.]]></background>
+      <evidence><![CDATA[한국은행 자료에 따르면 가계부채 비율이 GDP 대비 100%를 초과하여 세계 최고 수준을 기록했다.]]></evidence>
+      <argument><![CDATA[금융 당국은 대출 만기 연장 등 미봉책이 아닌, 부실 채권 정리와 채무 조정 등 근본적인 디레버리징 정책을 펴야 한다.]]></argument>
+      <fact><![CDATA[연체율이 지난 1년 사이 2배 이상 급증하며 금융권 부실 우려가 커지고 있다.]]></fact>
+    </structure>
+  </editorial>
+  <editorial id="sample-6">
+    <title><![CDATA[우주 항공청 설립, 미래 산업의 도약대]]></title>
+    <author>강우주 과학전문기자</author>
+    <date>2024-01-15</date>
+    <structure>
+      <background><![CDATA[뉴스페이스 시대를 맞아 세계 각국이 우주 개발 경쟁에 뛰어들고 있으나, 한국은 컨트롤 타워 부재로 뒤처지고 있다.]]></background>
+      <evidence><![CDATA[미국 NASA, 일본 JAXA 등 주요국은 전담 기구를 통해 민간 우주 산업을 주도하고 있다.]]></evidence>
+      <argument><![CDATA[우주항공청 설립법을 조속히 통과시켜 체계적인 우주 개발 로드맵을 수립하고 민간 기업을 육성해야 한다.]]></argument>
+      <fact><![CDATA[한국의 우주 예산 규모는 미국의 100분의 1 수준에 불과하다.]]></fact>
+    </structure>
+  </editorial>
+  <editorial id="sample-7">
+    <title><![CDATA[노인 빈곤율 OECD 1위, 연금 개혁 서둘러야]]></title>
+    <author>오복지 논설위원</author>
+    <date>2024-01-16</date>
+    <structure>
+      <background><![CDATA[급격한 고령화 속에 노인 빈곤 문제가 심각한 사회 문제로 대두되고 있으나 국민연금 개혁은 지지부진하다.]]></background>
+      <evidence><![CDATA[통계청 조사 결과 65세 이상 노인의 상대적 빈곤율은 40%에 육박해 OECD 평균의 3배에 달한다.]]></evidence>
+      <argument><![CDATA[보험료율 인상과 소득 대체율 조정을 포함한 사회적 대타협을 통해 연금의 지속 가능성을 확보해야 한다.]]></argument>
+      <fact><![CDATA[국민연금 고갈 시점이 당초 예상보다 2년 앞당겨진 2055년으로 전망되었다.]]></fact>
+    </structure>
+  </editorial>
+  <editorial id="sample-8">
+    <title><![CDATA[전세 사기 특별법, 피해 구제 실효성 높여야]]></title>
+    <author>송주택 부동산팀장</author>
+    <date>2024-01-17</date>
+    <structure>
+      <background><![CDATA[빌라왕 사태 등 전세 사기가 전국적으로 확산되며 수많은 세입자들이 보증금을 떼일 위기에 처했다.]]></background>
+      <evidence><![CDATA[특별법 시행 이후에도 피해자 인정 요건이 까다로워 실제 구제받은 사례는 전체 피해자의 20% 미만이다.]]></evidence>
+      <argument><![CDATA[피해자 인정 범위를 확대하고, 선구제 후회수 방안을 도입하여 피해자들의 주거 안정을 보장해야 한다.]]></argument>
+      <fact><![CDATA[전세 사기 피해자의 70%가 사회 초년생인 2030 세대이다.]]></fact>
+    </structure>
+  </editorial>
+  <editorial id="sample-9">
+    <title><![CDATA[K-콘텐츠 불법 유통, 저작권 보호 시스템 정비 시급]]></title>
+    <author>문화영 문화부장</author>
+    <date>2024-01-18</date>
+    <structure>
+      <background><![CDATA[한국의 영화, 드라마 등 K-콘텐츠가 세계적인 인기를 얻고 있으나, 불법 스트리밍 사이트로 인한 피해도 급증하고 있다.]]></background>
+      <evidence><![CDATA[업계 추산에 따르면 '누누티비' 등 불법 사이트로 인한 저작권 피해액이 연간 5조 원에 이른다.]]></evidence>
+      <argument><![CDATA[국제 공조 수사를 강화하고, 불법 사이트 차단 기술을 고도화하여 창작자들의 권리를 보호해야 한다.]]></argument>
+      <fact><![CDATA[불법 사이트 운영 서버의 대부분이 해외에 있어 국내법만으로는 처벌이 어려운 실정이다.]]></fact>
+    </structure>
+  </editorial>
+  <editorial id="sample-10">
+    <title><![CDATA[반도체 전쟁, 초격차 기술 확보가 생존 전략]]></title>
+    <author>반도체 산업부</author>
+    <date>2024-01-19</date>
+    <structure>
+      <background><![CDATA[미중 패권 경쟁 심화로 글로벌 반도체 공급망이 재편되면서 한국 반도체 산업이 샌드위치 위기에 처했다.]]></background>
+      <evidence><![CDATA[경쟁국들은 천문학적인 보조금을 지급하며 자국 반도체 생태계를 육성하고 있다.]]></evidence>
+      <argument><![CDATA[세제 혜택 확대와 인프라 지원을 통해 기업의 R&D 투자를 유도하고 초격차 기술 경쟁력을 확보해야 한다.]]></argument>
+      <fact><![CDATA[메모리 반도체 분야에서 경쟁국과의 기술 격차가 1년 이내로 좁혀졌다는 분석이 나왔다.]]></fact>
+    </structure>
+  </editorial>
+</editorials>`;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchBtn = document.getElementById('search-btn');
+            const inputs = {
+                background: document.getElementById('search-background'),
+                evidence: document.getElementById('search-evidence'),
+                argument: document.getElementById('search-argument'),
+                fact: document.getElementById('search-fact')
+            };
+            const resultsContainer = document.getElementById('results-list');
+            const resultCountSpan = document.getElementById('result-count');
+
+            let editorials = [];
+
+            // Parse XML Data Directly
+            try {
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlData, "text/xml");
+                const parseError = xmlDoc.getElementsByTagName("parsererror");
+
+                if (parseError.length > 0) {
+                    throw new Error("XML Parsing Failure");
+                }
+
+                editorials = parseEditorials(xmlDoc);
+                console.log(`Loaded ${editorials.length} editorials.`);
+            } catch (err) {
+                console.error('Error parsing XML:', err);
+                resultsContainer.innerHTML = `<p style="text-align:center; color:red;">XML 데이터를 처리하는 중 오류가 발생했습니다.<br>Error: ${err.message}</p>`;
+            }
+
+            // 초기 상태: 결과 영역 비우기 및 안내 메시지 표시
+            resultsContainer.innerHTML = '<div class="initial-state"><p>원하는 검색어를 입력하고 <strong>검색하기</strong> 버튼을 눌러주세요.</p></div>';
+            resultCountSpan.textContent = '0';
+
+            function parseEditorials(xmlDoc) {
+                const items = Array.from(xmlDoc.getElementsByTagName('editorial'));
+                return items.map(item => {
+                    const getTagText = (parent, tag) => {
+                        const els = parent.getElementsByTagName(tag);
+                        return els.length > 0 ? els[0].textContent.trim() : '';
+                    };
+
+                    const structure = item.getElementsByTagName('structure')[0];
+
+                    const bg = structure ? getTagText(structure, 'background') : '';
+                    const ev = structure ? getTagText(structure, 'evidence') : '';
+                    const ag = structure ? getTagText(structure, 'argument') : '';
+                    const fc = structure ? getTagText(structure, 'fact') : '';
+
+                    return {
+                        id: item.getAttribute('id'),
+                        title: getTagText(item, 'title'),
+                        author: getTagText(item, 'author'),
+                        date: getTagText(item, 'date'),
+                        background: bg,
+                        evidence: ev,
+                        argument: ag,
+                        fact: fc
+                    };
+                });
+            }
+
+            function filterEditorials() {
+                // 공백 제거 헬퍼 함수
+                const normalize = (str) => str.replace(/\s+/g, '').toLowerCase();
+
+                const queries = {
+                    background: normalize(inputs.background.value),
+                    evidence: normalize(inputs.evidence.value),
+                    argument: normalize(inputs.argument.value),
+                    fact: normalize(inputs.fact.value)
+                };
+
+                const filtered = editorials.filter(item => {
+                    const itemBg = normalize(item.background);
+                    const itemEv = normalize(item.evidence);
+                    const itemAg = normalize(item.argument);
+                    const itemFc = normalize(item.fact);
+
+                    const matchBackground = !queries.background || itemBg.includes(queries.background);
+                    const matchEvidence = !queries.evidence || itemEv.includes(queries.evidence);
+                    const matchArgument = !queries.argument || itemAg.includes(queries.argument);
+                    const matchFact = !queries.fact || itemFc.includes(queries.fact);
+
+                    return matchBackground && matchEvidence && matchArgument && matchFact;
+                });
+
+                displayResults(filtered);
+            }
+
+            function displayResults(items) {
+                resultCountSpan.textContent = items.length;
+                resultsContainer.innerHTML = '';
+
+                if (items.length === 0) {
+                    resultsContainer.innerHTML = '<p style="text-align:center; padding:2rem; color:#888;">검색 결과가 없습니다.</p>';
+                    return;
+                }
+
+                items.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'editorial-card';
+
+                    card.innerHTML = `
+                <div class="editorial-header">
+                    <div>
+                        <h4 class="editorial-title">${item.title}</h4>
+                        <div class="editorial-meta">${item.author} | ${item.date}</div>
+                    </div>
+                </div>
+                <div class="editorial-content">
+                    <div class="content-row background">
+                        <span class="content-label">Background</span>
+                        <div class="content-text">${highlightText(item.background, inputs.background.value)}</div>
+                    </div>
+                    <div class="content-row evidence">
+                        <span class="content-label">Evidence</span>
+                        <div class="content-text">${highlightText(item.evidence, inputs.evidence.value)}</div>
+                    </div>
+                    <div class="content-row argument">
+                        <span class="content-label">Argument</span>
+                        <div class="content-text">${highlightText(item.argument, inputs.argument.value)}</div>
+                    </div>
+                    <div class="content-row fact">
+                        <span class="content-label">Fact</span>
+                        <div class="content-text">${highlightText(item.fact, inputs.fact.value)}</div>
+                    </div>
+                </div>
+            `;
+                    resultsContainer.appendChild(card);
+                });
+            }
+
+            function highlightText(text, query) {
+                if (!query || !query.trim() || !text) return text;
+                const q = query.trim();
+                const regex = new RegExp(`(${q})`, 'gi');
+                return text.replace(regex, '<span style="background-color: #fffacd; font-weight:bold; padding: 0 2px;">$1</span>');
+            }
+
+            // Event Listeners
+            searchBtn.addEventListener('click', filterEditorials);
+
+            // Enter key support
+            Object.values(inputs).forEach(input => {
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') filterEditorials();
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>
