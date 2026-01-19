@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>토끼와 거북이 지식 그래프 & 햇봇</title>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+
+    <!-- vis-network -->
+    <!-- vis-network (cdnjs로 변경 및 에러 핸들링 추가) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js"
+        onerror="alert('그래프 라이브러리(vis-network)를 불러오지 못했습니다. 네트워크 상태나 차단 여부를 확인해주세요.');"></script>
+
+    <style>
+        :root {
+            --bg-color: #f0f8ff;
+            --primary-color: #ffafcc;
+            --secondary-color: #a2d2ff;
+            --bot-color: #ffca3a;
+            --user-color: #8ecae6;
+        }
+
+        body {
+            font-family: 'Jua', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 15px;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        /* 전체 레이아웃 */
+        .main-container {
+            display: flex;
+            gap: 15px;
+            width: 100%;
+            max-width: 1200px;
+            height: calc(100vh - 120px);
+            margin: 0 auto;
+        }
+
+        /* ===== 그래프 영역 (🔥 수정 핵심) ===== */
+        #graph-wrapper {
+            flex: 2;
+            background: #fff;
+            border-radius: 20px;
+            border: 5px solid var(--secondary-color);
+            min-height: 400px;
+            /* ★ 반드시 필요 */
+            height: 100%;
+        }
+
+        #graph-container {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 챗봇 영역 */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+            border-radius: 20px;
+            border: 5px solid var(--bot-color);
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background-color: var(--bot-color);
+            padding: 10px;
+            text-align: center;
+            color: #fff;
+            font-size: 1.3rem;
+        }
+
+        .quick-questions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 10px;
+            background: #fff7d6;
+        }
+
+        .quick-questions button {
+            background: #ffd166;
+            border: none;
+            border-radius: 15px;
+            padding: 6px 10px;
+            font-family: 'Jua', sans-serif;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background: #fffbeb;
+        }
+
+        .message {
+            margin-bottom: 10px;
+            padding: 10px 15px;
+            border-radius: 20px;
+            max-width: 85%;
+        }
+
+        .bot-message {
+            background: #fff;
+            border: 3px solid var(--bot-color);
+        }
+
+        .user-message {
+            background: var(--user-color);
+            color: white;
+            margin-left: auto;
+        }
+
+        .chat-input-area {
+            display: flex;
+            gap: 8px;
+            padding: 10px;
+            border-top: 2px solid #eee;
+        }
+
+        input {
+            flex: 1;
+            padding: 10px;
+            border-radius: 20px;
+            border: 2px solid #ddd;
+            font-family: 'Jua', sans-serif;
+        }
+
+        button.send {
+            background: var(--bot-color);
+            border: none;
+            border-radius: 20px;
+            padding: 0 15px;
+            color: white;
+            font-family: 'Jua', sans-serif;
+        }
+
+        /* 모바일 */
+        @media (max-width: 800px) {
+            .main-container {
+                flex-direction: column;
+            }
+
+            #graph-wrapper {
+                height: 350px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>🐰 토끼와 거북이 지식 그래프 & 햇봇 ☀️</h1>
+
+    <div class="main-container">
+
+        <!-- 그래프 -->
+        <div id="graph-wrapper">
+            <div id="graph-container"></div>
+        </div>
+
+        <!-- 챗봇 -->
+        <div class="chat-container">
+            <div class="chat-header">☀️ 햇봇에게 물어봐!</div>
+
+            <div class="quick-questions">
+                <button onclick="quickAsk('등장인물은 누구야?')">등장인물</button>
+                <button onclick="quickAsk('무슨 사건이야?')">사건</button>
+                <button onclick="quickAsk('누가 이겼어?')">결과</button>
+                <button onclick="quickAsk('교훈은 뭐야?')">교훈</button>
+                <button onclick="quickAsk('선은 무슨 뜻이야?')">그래프 설명</button>
+            </div>
+
+            <div class="chat-messages" id="chat-box">
+                <div class="message bot-message">
+                    안녕! 👋 나는 <strong>햇봇</strong>이야 ☀️<br>
+                    아래 버튼을 눌러도 되고, 직접 물어봐도 돼!
+                </div>
+            </div>
+
+            <div class="chat-input-area">
+                <input id="user-input" placeholder="궁금한 걸 적어 보세요 😊" onkeypress="if(event.key==='Enter')sendMessage()">
+                <button class="send" onclick="sendMessage()">전송</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ===== 그래프 ===== */
+        document.addEventListener('DOMContentLoaded', () => {
+            // 라이브러리 로드 확인
+            if (typeof vis === 'undefined') {
+                const container = document.getElementById('graph-container');
+                container.innerHTML = '<div style="padding:20px; color:red; text-align:center;">⚠️ 그래프 라이브러리가 로드되지 않았습니다.<br>새로고침 하거나 네트워크 차단을 확인하세요.</div>';
+                return;
+            }
+
+            const nodes = new vis.DataSet([
+                { id: 1, label: '토끼와 거북이\n(이야기)', shape: 'box', color: '#ffafcc', font: { color: 'white', size: 20 } },
+                { id: 2, label: '토끼 🐰', shape: 'ellipse' },
+                { id: 3, label: '거북이 🐢', shape: 'ellipse' },
+                { id: 4, label: '경주 🏁', shape: 'diamond', color: '#a2d2ff' },
+                { id: 5, label: '교훈 💡', shape: 'star', color: '#ffca3a' },
+                { id: 6, label: '빠르지만 자만함', shape: 'text' },
+                { id: 7, label: '잠을 잠 💤', shape: 'text' },
+                { id: 8, label: '느리지만 꾸준함', shape: 'text' },
+                { id: 9, label: '계속 걸음 👣', shape: 'text' },
+                { id: 10, label: '꾸준함이 이긴다', shape: 'box' }
+            ]);
+
+            const edges = new vis.DataSet([
+                { from: 1, to: 2, label: '등장인물' },
+                { from: 1, to: 3, label: '등장인물' },
+                { from: 1, to: 4, label: '사건' },
+                { from: 1, to: 5, label: '교훈' },
+                { from: 2, to: 6, dashes: true },
+                { from: 2, to: 7, dashes: true },
+                { from: 3, to: 8, dashes: true },
+                { from: 3, to: 9, dashes: true },
+                { from: 4, to: 3, label: '우승', color: { color: 'red' } },
+                { from: 5, to: 10 }
+            ]);
+
+            const container = document.getElementById('graph-container');
+
+            const network = new vis.Network(container, { nodes, edges }, {
+                autoResize: true,
+                physics: { stabilization: false },
+                nodes: { font: { face: 'Jua' } }
+            });
+
+            setTimeout(() => {
+                network.fit();
+                network.redraw();
+            }, 300);
+        });
+
+        /* ===== 챗봇 ===== */
+        function quickAsk(text) {
+            document.getElementById('user-input').value = text;
+            sendMessage();
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('user-input');
+            if (!input.value) return;
+            addMessage(input.value, 'user');
+            addMessage(getBotResponse(input.value), 'bot');
+            input.value = '';
+        }
+
+        function addMessage(text, who) {
+            const div = document.createElement('div');
+            div.className = 'message ' + who + '-message';
+            div.innerHTML = text;
+            document.getElementById('chat-box').appendChild(div);
+        }
+
+        function getBotResponse(t) {
+            if (t.includes('등장')) return '토끼 🐰와 거북이 🐢가 나와!';
+            if (t.includes('사건')) return '토끼와 거북이가 경주를 해!';
+            if (t.includes('누가') || t.includes('이겼')) return '거북이가 이겼어! 🏆';
+            if (t.includes('교훈')) return '꾸준히 하면 이길 수 있어!';
+            if (t.includes('선')) return '선은 이야기 속 관계를 알려줘 😊';
+            return '그래프를 보면서 다시 물어볼래?';
+        }
+    </script>
+
+</body>
+
+</html>
