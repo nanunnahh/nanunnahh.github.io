@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>토끼와 거북이 지식 그래프 & 햇봇</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <!-- vis-network library for graph visualization -->
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #f0f8ff;
+            --chat-bg: #fff;
+            --primary-color: #ffafcc;
+            --secondary-color: #a2d2ff;
+            --bot-color: #ffca3a;
+            /* 햇님 색깔 */
+            --user-color: #8ecae6;
+        }
+
+        body {
+            font-family: 'Jua', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 0 #fff;
+        }
+
+        .main-container {
+            display: flex;
+            width: 100%;
+            max-width: 1200px;
+            height: 80%;
+            gap: 20px;
+        }
+
+        /* 왼쪽: 그래프 영역 */
+        #graph-container {
+            flex: 2;
+            background: #ffffff;
+            border-radius: 20px;
+            border: 5px solid var(--secondary-color);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 오른쪽: 챗봇 영역 */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #ffffff;
+            border-radius: 20px;
+            border: 5px solid var(--bot-color);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background-color: var(--bot-color);
+            padding: 15px;
+            text-align: center;
+            font-size: 1.5rem;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background-color: #fffbeb;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 12px 18px;
+            border-radius: 20px;
+            font-size: 1.1rem;
+            line-height: 1.4;
+            position: relative;
+        }
+
+        .bot-message {
+            align-self: flex-start;
+            background-color: #fff;
+            border: 3px solid var(--bot-color);
+            color: #555;
+            border-top-left-radius: 5px;
+        }
+
+        .user-message {
+            align-self: flex-end;
+            background-color: var(--user-color);
+            color: #fff;
+            border-top-right-radius: 5px;
+        }
+
+        .chat-input-area {
+            padding: 15px;
+            background: #f9f9f9;
+            border-top: 2px solid #eee;
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 30px;
+            font-family: 'Jua', sans-serif;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--bot-color);
+        }
+
+        button {
+            background-color: var(--bot-color);
+            border: none;
+            padding: 0 25px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-family: 'Jua', sans-serif;
+            font-size: 1.2rem;
+            color: white;
+            transition: transform 0.1s;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        /* 반응형 */
+        @media (max-width: 800px) {
+            .main-container {
+                flex-direction: column;
+            }
+
+            #graph-container {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>🐰 토끼와 거북이 지식 그래프 & 햇봇 ☀️</h1>
+
+    <div class="main-container">
+        <div id="graph-container"></div>
+
+        <div class="chat-container">
+            <div class="chat-header">
+                ☀️ 햇봇에게 물어봐!
+            </div>
+            <div class="chat-messages" id="chat-box">
+                <div class="message bot-message">
+                    안녕? 나는 그래프를 볼 줄 아는 <strong>햇봇</strong>이야!<br>
+                    "등장인물은 누구야?", "어떤 사건이 있어?" 처럼 그래프에 있는 걸 물어봐 줘!
+                </div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="user-input" placeholder="궁금한 내용을 입력해요..." onkeypress="handleKeyPress(event)">
+                <button onclick="sendMessage()">전송</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. 그래프 데이터 정의 (Story.ttl 내용 반영)
+        const nodes = new vis.DataSet([
+            { id: 1, label: '토끼와 거북이\n(이야기)', shape: 'box', color: '#ffafcc', font: { size: 20, color: 'white' } },
+
+            { id: 2, label: '토끼 🐰', shape: 'ellipse', color: '#ffffff', border: '#333' },
+            { id: 3, label: '거북이 🐢', shape: 'ellipse', color: '#ffffff', border: '#333' },
+
+            { id: 4, label: '경주 🏁', shape: 'diamond', color: '#a2d2ff' },
+            { id: 5, label: '교훈 💡', shape: 'star', color: '#ffca3a' },
+
+            { id: 6, label: '성격: 빠르지만 자만함', shape: 'text', font: { color: '#555' } },
+            { id: 7, label: '행동: 낮잠 💤', shape: 'text', font: { color: '#555' } },
+
+            { id: 8, label: '성격: 느리지만 꾸준함', shape: 'text', font: { color: '#555' } },
+            { id: 9, label: '행동: 꾸준히 걸음 👣', shape: 'text', font: { color: '#555' } },
+
+            { id: 10, label: '"꾸준함이 자만함을 이긴다"', shape: 'box', color: '#eee' }
+        ]);
+
+        const edges = new vis.DataSet([
+            { from: 1, to: 2, label: '등장인물', arrows: 'to' },
+            { from: 1, to: 3, label: '등장인물', arrows: 'to' },
+            { from: 1, to: 4, label: '사건', arrows: 'to' },
+            { from: 1, to: 5, label: '교훈', arrows: 'to' },
+
+            { from: 2, to: 6, label: '특징', dashes: true },
+            { from: 2, to: 7, label: '행동', dashes: true },
+
+            { from: 3, to: 8, label: '특징', dashes: true },
+            { from: 3, to: 9, label: '행동', dashes: true },
+
+            { from: 4, to: 3, label: '우승자', arrows: 'to', width: 3, color: { color: 'red' } },
+
+            { from: 5, to: 10, label: '내용', arrows: 'to' }
+        ]);
+
+        // 2. 그래프 그리기
+        const container = document.getElementById('graph-container');
+        const data = { nodes: nodes, edges: edges };
+        const options = {
+            nodes: { font: { face: 'Jua' } },
+            edges: { font: { face: 'Jua', align: 'middle' }, smooth: { type: 'dynamic' } },
+            physics: { enabled: true, solver: 'forceAtlas2Based', stabilization: { iterations: 150 } }
+        };
+        new vis.Network(container, data, options);
+
+        // 3. 햇봇 로직 (업데이트됨)
+        function sendMessage() {
+            const inputField = document.getElementById('user-input');
+            const message = inputField.value.trim();
+            if (message === "") return;
+            addMessage(message, 'user');
+            inputField.value = "";
+            setTimeout(() => {
+                const response = getBotResponse(message);
+                addMessage(response, 'bot');
+            }, 500);
+        }
+
+        function addMessage(text, sender) {
+            const chatBox = document.getElementById('chat-box');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${sender}-message`;
+            msgDiv.innerHTML = text;
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') sendMessage();
+        }
+
+        // ★★★ 여기가 똑똑해진 햇봇의 뇌입니다! ★★★
+        function getBotResponse(input) {
+            input = input.replace(/\s/g, ""); // 공백 제거 후 비교 (더 잘 찾기 위해)
+
+            // 1. 등장인물 관련 질문
+            if (input.includes("등장인물") || input.includes("누가나와") || input.includes("주인공")) {
+                return "이 이야기의 <strong>등장인물</strong>은 '토끼' 🐰와 '거북이' 🐢가 있어.<br>그래프에서 '등장인물' 화살표를 따라가 봐!";
+            }
+
+            // 2. 사건 관련 질문
+            if (input.includes("사건") || input.includes("무슨일") || input.includes("경주")) {
+                return "가장 중요한 <strong>사건</strong>은 바로 '경주' 🏁야.<br>토끼와 거북이가 달리기 시합을 하는 사건이지!";
+            }
+
+            // 3. 행동 관련 질문
+            if (input.includes("행동") || input.includes("뭐했어")) {
+                return "두 친구의 <strong>행동</strong>을 알려줄게!<br>🐰 토끼: <strong>'잠을 잠'</strong> 💤(쿨쿨~)<br>🐢 거북이: <strong>'꾸준히 걸음'</strong> 👣(영차영차!)";
+            }
+
+            // 4. 선/화살표/관계 관련 질문 (그래프 구조 질문)
+            if (input.includes("선") || input.includes("화살표") || input.includes("연결") || input.includes("관계")) {
+                return "그래프의 <strong>선(화살표)</strong>들은 서로 어떤 사이인지 알려줘.<br>👉 <strong>등장인물, 사건, 교훈</strong>: 이야기의 구성 요소<br>👉 <strong>점선</strong>: 성격이나 행동을 설명<br>👉 <strong>빨간 선</strong>: 경주의 우승자! 🏆";
+            }
+
+            // 5. 교훈
+            if (input.includes("교훈") || input.includes("배울점")) {
+                return "이 이야기의 교훈은 <strong>'꾸준함이 자만함을 이긴다'</strong>야. ✨";
+            }
+
+            // 6. 승패/우승자
+            if (input.includes("누가이겨") || input.includes("우승") || input.includes("승리") || input.includes("결과")) {
+                return "빨간색 화살표가 보이지? 🧐<br>우승자는 바로 <strong>거북이</strong>야! 🐢";
+            }
+
+            // 7. 토끼 특징
+            if (input.includes("토끼") || (input.includes("빠른") && input.includes("동물"))) {
+                return "<strong>토끼</strong>는 아주 빠르지만, 자만해서 잠을 자고 말았어. 🐰💤";
+            }
+
+            // 8. 거북이 특징
+            if (input.includes("거북이") || (input.includes("느린") && input.includes("동물"))) {
+                return "<strong>거북이</strong>는 느리지만 꾸준히 걸어서 결국 이겼어! 🐢🔥";
+            }
+
+            // 9. 인사
+            if (input.includes("안녕")) {
+                return "안녕! 나는 무엇이든 대답해 주는 햇봇이야. ☀️<br>'등장인물은 누구야?', '사건은 뭐야?' 하고 물어봐!";
+            }
+
+            // 그 외
+            return "으음.. 조금 더 쉽게 물어봐 줄래? 😅<br><strong>'등장인물 알려줘'</strong>, <strong>'행동은 뭐야?'</strong>, <strong>'선은 무슨 뜻이야?'</strong> 처럼 말이야!";
+        }
+    </script>
+
+</body>
+
+</html>
