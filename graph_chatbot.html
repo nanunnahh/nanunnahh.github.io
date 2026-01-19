@@ -41,18 +41,23 @@
             gap: 15px;
             width: 100%;
             max-width: 1200px;
-            height: calc(100vh - 120px); /* ★ 중요 */
+            height: calc(100vh - 120px);
             margin: 0 auto;
         }
 
-        /* 그래프 영역 */
-        #graph-container {
+        /* ===== 그래프 영역 (🔥 수정 핵심) ===== */
+        #graph-wrapper {
             flex: 2;
             background: #fff;
             border-radius: 20px;
             border: 5px solid var(--secondary-color);
-            height: 100%;              /* ★ 핵심 */
-            min-height: 400px;         /* ★ 카톡 웹뷰 대응 */
+            min-height: 400px; /* ★ 반드시 필요 */
+            height: 100%;
+        }
+
+        #graph-container {
+            width: 100%;
+            height: 100%;
         }
 
         /* 챗봇 영역 */
@@ -74,7 +79,6 @@
             font-size: 1.3rem;
         }
 
-        /* 추천 질문 */
         .quick-questions {
             display: flex;
             flex-wrap: wrap;
@@ -148,7 +152,7 @@
                 flex-direction: column;
             }
 
-            #graph-container {
+            #graph-wrapper {
                 height: 350px;
             }
         }
@@ -161,13 +165,15 @@
 
 <div class="main-container">
 
-    <div id="graph-container"></div>
+    <!-- 그래프 -->
+    <div id="graph-wrapper">
+        <div id="graph-container"></div>
+    </div>
 
+    <!-- 챗봇 -->
     <div class="chat-container">
-
         <div class="chat-header">☀️ 햇봇에게 물어봐!</div>
 
-        <!-- ★ 초등학생용 추천 질문 -->
         <div class="quick-questions">
             <button onclick="quickAsk('등장인물은 누구야?')">등장인물</button>
             <button onclick="quickAsk('무슨 사건이야?')">사건</button>
@@ -184,15 +190,17 @@
         </div>
 
         <div class="chat-input-area">
-            <input id="user-input" placeholder="궁금한 걸 적어 보세요 😊" onkeypress="if(event.key==='Enter')sendMessage()">
+            <input id="user-input" placeholder="궁금한 걸 적어 보세요 😊"
+                onkeypress="if(event.key==='Enter')sendMessage()">
             <button class="send" onclick="sendMessage()">전송</button>
         </div>
-
     </div>
 </div>
 
 <script>
-    /* 그래프 데이터 */
+/* ===== 그래프 ===== */
+document.addEventListener('DOMContentLoaded', () => {
+
     const nodes = new vis.DataSet([
         { id: 1, label: '토끼와 거북이\n(이야기)', shape: 'box', color: '#ffafcc', font: { color: 'white', size: 20 } },
         { id: 2, label: '토끼 🐰', shape: 'ellipse' },
@@ -219,44 +227,50 @@
         { from: 5, to: 10 }
     ]);
 
-    new vis.Network(
-        document.getElementById('graph-container'),
-        { nodes, edges },
-        { physics: { stabilization: true }, nodes: { font: { face: 'Jua' } } }
-    );
+    const container = document.getElementById('graph-container');
 
-    /* 챗봇 */
-    function quickAsk(text) {
-        document.getElementById('user-input').value = text;
-        sendMessage();
-    }
+    const network = new vis.Network(container, { nodes, edges }, {
+        autoResize: true,
+        physics: { stabilization: false },
+        nodes: { font: { face: 'Jua' } }
+    });
 
-    function sendMessage() {
-        const input = document.getElementById('user-input');
-        if (!input.value) return;
-        addMessage(input.value, 'user');
-        addMessage(getBotResponse(input.value), 'bot');
-        input.value = '';
-    }
+    setTimeout(() => {
+        network.fit();
+        network.redraw();
+    }, 300);
+});
 
-    function addMessage(text, who) {
-        const div = document.createElement('div');
-        div.className = 'message ' + who + '-message';
-        div.innerHTML = text;
-        document.getElementById('chat-box').appendChild(div);
-    }
+/* ===== 챗봇 ===== */
+function quickAsk(text) {
+    document.getElementById('user-input').value = text;
+    sendMessage();
+}
 
-    function getBotResponse(t) {
-        if (t.includes('등장')) return '토끼 🐰와 거북이 🐢가 나와!';
-        if (t.includes('사건')) return '토끼와 거북이가 경주를 해!';
-        if (t.includes('누가') || t.includes('이겼')) return '거북이가 이겼어! 🏆';
-        if (t.includes('교훈')) return '꾸준히 하면 이길 수 있어!';
-        if (t.includes('선')) return '선은 이야기 속 관계를 알려줘 😊';
-        return '그래프를 보면서 다시 물어볼래?';
-    }
+function sendMessage() {
+    const input = document.getElementById('user-input');
+    if (!input.value) return;
+    addMessage(input.value, 'user');
+    addMessage(getBotResponse(input.value), 'bot');
+    input.value = '';
+}
+
+function addMessage(text, who) {
+    const div = document.createElement('div');
+    div.className = 'message ' + who + '-message';
+    div.innerHTML = text;
+    document.getElementById('chat-box').appendChild(div);
+}
+
+function getBotResponse(t) {
+    if (t.includes('등장')) return '토끼 🐰와 거북이 🐢가 나와!';
+    if (t.includes('사건')) return '토끼와 거북이가 경주를 해!';
+    if (t.includes('누가') || t.includes('이겼')) return '거북이가 이겼어! 🏆';
+    if (t.includes('교훈')) return '꾸준히 하면 이길 수 있어!';
+    if (t.includes('선')) return '선은 이야기 속 관계를 알려줘 😊';
+    return '그래프를 보면서 다시 물어볼래?';
+}
 </script>
 
 </body>
 </html>
-
-
