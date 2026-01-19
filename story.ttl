@@ -1,0 +1,46 @@
+@prefix ex:   <http://example.org/fable/> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+# 이야기 자체
+ex:HareAndTortoise
+    a ex:Fable ;
+    rdfs:label "토끼와 거북이" ;
+    ex:hasCharacter ex:Hare , ex:Tortoise ;
+    ex:hasEvent ex:Race ;
+    ex:hasMoral ex:Moral .
+
+# 등장인물
+ex:Hare
+    a ex:Animal ;
+    rdfs:label "토끼" ;
+    ex:trait "빠르지만 자만함" .
+
+ex:Tortoise
+    a ex:Animal ;
+    rdfs:label "거북이" ;
+    ex:trait "느리지만 꾸준함" .
+
+# 사건: 경주
+ex:Race
+    a ex:Event ;
+    rdfs:label "경주" ;
+    ex:participant ex:Hare , ex:Tortoise ;
+    ex:behavior ex:Sleep , ex:SteadyWalk ;
+    ex:winner ex:Tortoise .
+
+# 행동
+ex:Sleep
+    a ex:Action ;
+    rdfs:label "잠을 잠" ;
+    ex:performedBy ex:Hare .
+
+ex:SteadyWalk
+    a ex:Action ;
+    rdfs:label "꾸준히 걸음" ;
+    ex:performedBy ex:Tortoise .
+
+# 교훈
+ex:Moral
+    a ex:Moral ;
+    rdfs:label "꾸준함이 자만함을 이긴다" .
